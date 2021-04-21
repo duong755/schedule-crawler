@@ -1,21 +1,22 @@
 package main
 
 import (
-	"context"
-	"fmt"
+	"sync"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"schedule.crawler/database"
+	"schedule.crawler/crawler"
 )
 
 func main() {
-	dbs, err := database.Client().ListDatabaseNames(context.TODO(), bson.D{})
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(2)
 
-	if err != nil {
-		panic(err)
-	}
-
-	for _, dbname := range dbs {
-		fmt.Println(dbname)
-	}
+	go func() {
+		crawler.Schedule()
+		defer waitGroup.Done()
+	}()
+	go func() {
+		crawler.Class()
+		defer waitGroup.Done()
+	}()
+	waitGroup.Wait()
 }
