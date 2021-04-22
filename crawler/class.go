@@ -10,7 +10,7 @@ func Class() {
 	classCollector := colly.NewCollector(
 		colly.AllowURLRevisit(),
 	)
-	selector := ""
+	selector := "table:nth-child(4)"
 	url := "http://112.137.129.115/tkb/listbylist.php"
 	classCollector.OnRequest(func(req *colly.Request) {
 		fmt.Printf("Sending request to %s ...\n", req.URL)
@@ -20,7 +20,11 @@ func Class() {
 		fmt.Printf("%+v\n", res.Headers)
 		fmt.Printf("%d\n", res.StatusCode)
 	})
-	classCollector.OnHTML(selector, func(html *colly.HTMLElement) {})
+	classCollector.OnHTML(selector, func(matchedTable *colly.HTMLElement) {
+		matchedTable.ForEach("tr", func(index int, tableRow *colly.HTMLElement) {
+			fmt.Println(tableRow.Text)
+		})
+	})
 
 	classCollector.Visit(url)
 }
