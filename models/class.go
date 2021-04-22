@@ -10,6 +10,7 @@ type Class struct {
 	SubjectName      string               `bson:"subjectName" json:"subjectName"`
 	Credit           int8                 `bson:"credit" json:"credit"`
 	ClassId          string               `bson:"classId" json:"classId"`
+	Teacher          string               `bson:"teacher" json:"teacher"`
 	NumberOfStudents int8                 `bson:"numberOfStudents" json:"numberOfStudents"`
 	Session          string               `bson:"session" json:"session"` // "sáng" hoặc "chiều" hoặc "tối"
 	WeekDay          int8                 `bson:"weekDay" json:"weekDay"`

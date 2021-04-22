@@ -9,9 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func Client() *mongo.Client {
+func Client() (*mongo.Client, context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(DATABASE_URL))
 	if err != nil {
@@ -19,5 +18,5 @@ func Client() *mongo.Client {
 		panic("Cannot connect to database")
 	}
 
-	return client
+	return client, ctx, cancel
 }
