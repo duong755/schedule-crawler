@@ -5,11 +5,11 @@ import (
 )
 
 type Student struct {
-	Id       string             `bson:"id" json:"id"`
-	Name     string             `bson:"name" json:"name"`
-	Birthday primitive.DateTime `bson:"birthday" json:"birthday"`
-	Course   string             `bson:"course" json:"course"`
-	Note     string             `bson:"note" json:"note"`
+	Id       string `bson:"id" json:"id"`
+	Name     string `bson:"name" json:"name"`
+	Birthday string `bson:"birthday" json:"birthday"`
+	Course   string `bson:"course" json:"course"`
+	Note     string `bson:"note" json:"note"`
 }
 
 type Schedule struct {
