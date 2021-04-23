@@ -21,6 +21,6 @@ jobs:
 
     - name: Execute
       env:
-        DATABASE_URL_FOR_CRAWLER: ${{ env.DATABASE_URL_FOR_CRAWLER }}
+        DATABASE_URL_FOR_CRAWLER: ${{ secrets.DATABASE_URL_FOR_CRAWLER }}
       run: |
         ./schedule.crawler
