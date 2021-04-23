@@ -7,8 +7,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL_FOR_CRAWLER: ${{ env.DATABASE_URL_FOR_CRAWLER }}
     steps:
     - uses: actions/checkout@v2
 
@@ -22,5 +20,7 @@ jobs:
         go build
 
     - name: Execute
+      env:
+        DATABASE_URL_FOR_CRAWLER: ${{ env.DATABASE_URL_FOR_CRAWLER }}
       run: |
         ./schedule.crawler
