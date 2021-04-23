@@ -8,11 +8,11 @@ import (
 
 	"github.com/gocolly/colly/v2"
 	"go.mongodb.org/mongo-driver/bson"
-	"schedule.crawler/database"
+	"go.mongodb.org/mongo-driver/mongo"
 	"schedule.crawler/models"
 )
 
-func Class() {
+func Class(dbcontext context.Context, client *mongo.Client) {
 	classCollector := colly.NewCollector(
 		colly.AllowURLRevisit(),
 	)
@@ -26,14 +26,15 @@ func Class() {
 		fmt.Printf("%d\n", res.StatusCode)
 	})
 	classCollector.OnHTML(selector, func(matchedTable *colly.HTMLElement) {
-		firstPeriodRegexp := regexp.MustCompile(`^\d+`)
-		lastPeriodRegexp := regexp.MustCompile(`\d+$`)
-		client, _, _ := database.Client()
+		firstPeriodRegexp, _ := regexp.Compile(`^\d+`)
+		lastPeriodRegexp, _ := regexp.Compile(`\d+$`)
 		classCollection := client.Database("uet").Collection("class")
-		classCollection.Drop(context.Background())
+		classCollection.Drop(dbcontext)
 
+		fmt.Println("Collecting classes...")
 		matchedTable.ForEach("tr", func(index int, tableRow *colly.HTMLElement) {
 			if index == 0 {
+				// ignore table header
 				return
 			}
 			class := models.Class{}
@@ -105,7 +106,7 @@ func Class() {
 				{Key: "place", Value: class.Place},
 				{Key: "note", Value: class.Note},
 			}
-			_, err := classCollection.InsertOne(context.TODO(), bsonDocument)
+			_, err := classCollection.InsertOne(dbcontext, bsonDocument)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 			}
