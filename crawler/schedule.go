@@ -125,7 +125,8 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 	scheduleCollector.Wait()
 	for page := 1; !isLastPage; page++ {
 		queryString := fmt.Sprintf("?SinhvienLmh[term_id]=%s&SinhvienLmh_page=%d&ajax=sinhvien-lmh-grid&pageSize=%d&r=sinhvienLmh/admin", semesterId, page, 5000)
-		scheduleCollector.Visit(rootUrl + queryString)
-		scheduleCollector.Wait()
+		cloneScheduleCollector := scheduleCollector.Clone()
+		cloneScheduleCollector.Visit(rootUrl + queryString)
+		cloneScheduleCollector.Wait()
 	}
 }
