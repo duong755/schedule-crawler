@@ -98,7 +98,7 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 		matchedResults := pageRegexp.FindStringSubmatch(href)
 		lastPageString := matchedResults[1]
 		lastPage, _ = strconv.ParseInt(lastPageString, 10, 64)
-		requestQueue, _ := queue.New(1, &queue.InMemoryQueueStorage{MaxSize: 10})
+		requestQueue, _ := queue.New(4, &queue.InMemoryQueueStorage{MaxSize: 10})
 		for page := 1; page <= int(lastPage); page++ {
 			requestQueue.AddURL(rootUrl + buildQuery(semesterId, page, 5000))
 		}
