@@ -19,7 +19,7 @@ type OnlyObjectId struct {
 }
 
 func buildQuery(semesterId string, page, offset int) string {
-	return fmt.Sprintf("?SinhvienLmh[term_id]=%s&SinhvienLmh_page=%d&ajax=sinhvien-lmh-grid&pageSize=%d&r=sinhvienLmh/admin", semesterId, 1, 1000)
+	return fmt.Sprintf("?SinhvienLmh[term_id]=%s&SinhvienLmh_page=%d&ajax=sinhvien-lmh-grid&pageSize=%d&r=sinhvienLmh/admin", semesterId, 1, 100000)
 }
 
 func Schedule(dbcontext context.Context, client *mongo.Client) {
@@ -100,7 +100,7 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 		lastPage, _ = strconv.ParseInt(lastPageString, 10, 64)
 		requestQueue, _ := queue.New(1, &queue.InMemoryQueueStorage{MaxSize: 10})
 		for page := 1; page <= int(lastPage); page++ {
-			requestQueue.AddURL(rootUrl + buildQuery(semesterId, page, 1000))
+			requestQueue.AddURL(rootUrl + buildQuery(semesterId, page, 100000))
 		}
 		requestQueue.Run(scheduleCollector)
 	})
@@ -114,7 +114,7 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 					fmt.Println("No semester id found")
 				} else {
 					fmt.Printf("Found semester id: %s\n", semesterId)
-					lastPageCollector.Visit(rootUrl + buildQuery(semesterId, 1, 1000))
+					lastPageCollector.Visit(rootUrl + buildQuery(semesterId, 1, 100000))
 				}
 			}
 		})
