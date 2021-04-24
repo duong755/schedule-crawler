@@ -8,7 +8,7 @@ import (
 func main() {
 	dbcontext, client := database.Client()
 
-        crawler.Class(dbcontext, client)
+	crawler.Class(dbcontext, client)
 	crawler.Schedule(dbcontext, client)
 
 	defer client.Disconnect(dbcontext)

@@ -67,70 +67,51 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 		if htmlTBodyElement.ChildText("span.empty") != "" {
 			return
 		}
-		classCollection := client.Database("uet").Collection("class")
 		scheduleCollection := client.Database("uet").Collection("schedule")
+		scheduleCollection.Drop(dbcontext)
 
 		fmt.Println("Collecting schedules...")
 		numberOfRows := len(htmlTBodyElement.ChildTexts("tr"))
 		documents := make([]interface{}, 0, numberOfRows)
 
+		if isLastPage {
+			return
+		}
+
 		htmlTBodyElement.ForEach("tr", func(rowIndex int, htmlTRowElement *colly.HTMLElement) {
-			student := models.Student{}
-			schedule := models.Schedule{Classes: make([]primitive.ObjectID, 0, 4)}
+			schedule := models.Schedule{}
 
 			htmlTRowElement.ForEach("td", func(cellIndex int, htmlTCellElement *colly.HTMLElement) {
-				classId := ""
-				classNote := "" // "CL", "1", "2", ...
 				// ignore case 0
 				switch cellIndex {
 				case 1:
-					student.Id = htmlTCellElement.Text
+					schedule.StudentId = htmlTCellElement.Text
 				case 2:
-					student.Name = htmlTCellElement.Text
+					schedule.StudentName = htmlTCellElement.Text
 				case 3:
-					student.Birthday = htmlTCellElement.Text
+					schedule.StudentBirthday = htmlTCellElement.Text
 				case 4:
-					student.Course = htmlTCellElement.Text
+					schedule.StudentCourse = htmlTCellElement.Text
 				case 5:
-					classId = htmlTCellElement.Text
+					schedule.ClassId = htmlTCellElement.Text
 				case 7:
-					classNote = htmlTCellElement.Text
+					schedule.ClassNote = htmlTCellElement.Text
 				case 9:
-					student.Note = htmlTCellElement.Text
-				}
-
-				schedule.Student = student
-				filter := bson.D{
-					{Key: "classId", Value: classId},
-					{Key: "note", Value: bson.D{{Key: "$in", Value: bson.A{"CL", classNote}}}},
-				}
-				cursorResult, queryErr := classCollection.Find(dbcontext, filter)
-				if queryErr != nil {
-					panic(queryErr)
-				}
-				for cursorResult.Next(dbcontext) {
-					classItem := OnlyObjectId{}
-					cursorResult.Decode(&classItem)
-					schedule.Classes = append(schedule.Classes, classItem.Id)
+					schedule.StudentNote = htmlTCellElement.Text
 				}
 			})
 
-			classes := bson.A{}
-			for _, class := range schedule.Classes {
-				classes = append(classes, class)
-			}
-
 			bsonDocument := bson.D{
-				{Key: "student", Value: bson.D{
-					{Key: "id", Value: schedule.Student.Id},
-					{Key: "name", Value: schedule.Student.Name},
-					{Key: "birthday", Value: schedule.Student.Birthday},
-					{Key: "course", Value: schedule.Student.Course},
-					{Key: "note", Value: schedule.Student.Note},
-				}},
-				{Key: "classes", Value: classes},
+				{Key: "studentId", Value: schedule.StudentId},
+				{Key: "studentName", Value: schedule.StudentName},
+				{Key: "studentBirthday", Value: schedule.StudentBirthday},
+				{Key: "studentCourse", Value: schedule.StudentCourse},
+				{Key: "classId", Value: schedule.ClassId},
+				{Key: "classNote", Value: schedule.ClassNote},
+				{Key: "studentNote", Value: schedule.StudentNote},
 			}
 			documents = append(documents, bsonDocument)
+			fmt.Printf("\r Scanned %d/%d rows of page %s", rowIndex+1, numberOfRows, currentSchedulePage)
 		})
 
 		results, err := scheduleCollection.InsertMany(dbcontext, documents)

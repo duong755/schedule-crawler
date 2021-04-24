@@ -31,9 +31,12 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 		classCollection := client.Database("uet").Collection("class")
 		classCollection.Drop(dbcontext)
 
+		numberOfRows := len(matchedTable.ChildTexts("tr"))
+		documents := make([]interface{}, 0, numberOfRows)
+
 		fmt.Println("Collecting classes...")
-		matchedTable.ForEach("tr", func(index int, tableRow *colly.HTMLElement) {
-			if index == 0 {
+		matchedTable.ForEach("tr", func(rowIndex int, tableRow *colly.HTMLElement) {
+			if rowIndex == 0 {
 				// ignore table header
 				return
 			}
@@ -106,11 +109,15 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 				{Key: "place", Value: class.Place},
 				{Key: "note", Value: class.Note},
 			}
-			_, err := classCollection.InsertOne(dbcontext, bsonDocument)
-			if err != nil {
-				fmt.Printf("%v\n", err)
-			}
+			documents = append(documents, bsonDocument)
+			fmt.Printf("\r Scanned %d/%d rows", rowIndex+1, numberOfRows)
 		})
+
+		fmt.Println()
+		_, err := classCollection.InsertMany(dbcontext, documents)
+		if err != nil {
+			fmt.Printf("%v\n", err)
+		}
 	})
 
 	classCollector.Visit(url)

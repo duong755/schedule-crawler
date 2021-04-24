@@ -4,16 +4,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type Student struct {
-	Id       string `bson:"id" json:"id"`
-	Name     string `bson:"name" json:"name"`
-	Birthday string `bson:"birthday" json:"birthday"`
-	Course   string `bson:"course" json:"course"`
-	Note     string `bson:"note" json:"note"`
-}
-
 type Schedule struct {
-	Id      primitive.ObjectID   `bson:"id" json:"id"`
-	Student Student              `bson:"student" json:"student"`
-	Classes []primitive.ObjectID `bson:"classes" json:"classes"`
+	Id              primitive.ObjectID `bson:"_id" json:"_id"`
+	StudentId       string             `bson:"studentId" json:"studentId"`
+	StudentName     string             `bson:"studentName" json:"studentName"`
+	StudentBirthday string             `bson:"studentBirthday" json:"studentBirthday"`
+	StudentCourse   string             `bson:"studentCourse" json:"studentCourse"`
+	ClassId         string             `bson:"classId" json:"classId"`
+	ClassNote       string             `bson:"classNote" json:"classNote"`
+	StudentNote     string             `bson:"studentNote" json:"studentNote"`
 }
