@@ -114,7 +114,7 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 		})
 
 		fmt.Println()
-		_, err := classCollection.InsertMany(dbcontext, documents)
+		_, err := classCollection.InsertMany(context.TODO(), documents)
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		}

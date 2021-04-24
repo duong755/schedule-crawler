@@ -19,7 +19,7 @@ type OnlyObjectId struct {
 }
 
 func buildQuery(semesterId string, page, offset int) string {
-	return fmt.Sprintf("?SinhvienLmh[term_id]=%s&SinhvienLmh_page=%d&ajax=sinhvien-lmh-grid&pageSize=%d&r=sinhvienLmh/admin", semesterId, 1, 100)
+	return fmt.Sprintf("?SinhvienLmh[term_id]=%s&SinhvienLmh_page=%d&ajax=sinhvien-lmh-grid&pageSize=%d&r=sinhvienLmh/admin", semesterId, page, offset)
 }
 
 func Schedule(dbcontext context.Context, client *mongo.Client) {
@@ -27,6 +27,9 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 	// const tableSelector string = "#sinhvien-lmh-grid > table.items > tbody"
 	const lastPageSelector string = "#sinhvien-lmh-grid #yw0 > li.last > a[href]"
 	const rootUrl string = "http://112.137.129.87/qldt/index.php"
+
+	scheduleCollection := client.Database("uet").Collection("schedule")
+	scheduleCollection.Drop(dbcontext)
 
 	var lastPage int64 = 0
 	var semesterId string = ""
@@ -42,9 +45,6 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 	)
 
 	scheduleCollector.OnHTML("tbody", func(htmlTableBodyElement *colly.HTMLElement) {
-		scheduleCollection := client.Database("uet").Collection("schedule")
-		scheduleCollection.Drop(dbcontext)
-
 		fmt.Println("Collecting schedules...")
 		numberOfRows := len(htmlTableBodyElement.ChildTexts("tr"))
 		documents := make([]interface{}, 0, numberOfRows)
@@ -86,7 +86,7 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 		})
 		fmt.Println()
 
-		_, err := scheduleCollection.InsertMany(dbcontext, documents)
+		_, err := scheduleCollection.InsertMany(context.TODO(), documents)
 		if err != nil {
 			panic(err)
 		}
@@ -100,7 +100,7 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 		lastPage, _ = strconv.ParseInt(lastPageString, 10, 64)
 		requestQueue, _ := queue.New(1, &queue.InMemoryQueueStorage{MaxSize: 10})
 		for page := 1; page <= int(lastPage); page++ {
-			requestQueue.AddURL(rootUrl + buildQuery(semesterId, page, 100))
+			requestQueue.AddURL(rootUrl + buildQuery(semesterId, page, 5000))
 		}
 		requestQueue.Run(scheduleCollector)
 	})
@@ -114,7 +114,7 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 					fmt.Println("No semester id found")
 				} else {
 					fmt.Printf("Found semester id: %s\n", semesterId)
-					lastPageCollector.Visit(rootUrl + buildQuery(semesterId, 1, 100))
+					lastPageCollector.Visit(rootUrl + buildQuery(semesterId, 1, 5000))
 				}
 			}
 		})
