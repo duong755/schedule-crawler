@@ -16,23 +16,26 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 	classCollector := colly.NewCollector(
 		colly.AllowURLRevisit(),
 	)
-	selector := "table:nth-child(4) > tbody"
-	url := "http://112.137.129.115/tkb/listbylist.php"
+	SELECTOR := "table:nth-child(4) > tbody"
+	ROOT_URL := "http://112.137.129.115/tkb/listbylist.php"
+
 	classCollector.OnRequest(func(req *colly.Request) {
 		fmt.Printf("Sending request to %s ...\n", req.URL)
 	})
+
 	classCollector.OnResponse(func(res *colly.Response) {
 		fmt.Printf("Received response from %s\n", res.Request.URL.String())
 		fmt.Printf("%d\n", res.StatusCode)
 	})
-	classCollector.OnHTML(selector, func(matchedTable *colly.HTMLElement) {
+
+	classCollector.OnHTML(SELECTOR, func(matchedTable *colly.HTMLElement) {
 		firstPeriodRegexp, _ := regexp.Compile(`^\d+`)
 		lastPeriodRegexp, _ := regexp.Compile(`\d+$`)
 		classCollection := client.Database("uet").Collection("class")
 		classCollection.Drop(dbcontext)
 
 		numberOfRows := len(matchedTable.ChildTexts("tr"))
-		documents := make([]interface{}, 0, numberOfRows)
+		documents := []interface{}{}
 
 		fmt.Println("Collecting classes...")
 		matchedTable.ForEach("tr", func(rowIndex int, tableRow *colly.HTMLElement) {
@@ -42,6 +45,18 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 			}
 			class := models.Class{}
 			tableRow.ForEach("td", func(cellIndex int, tableCell *colly.HTMLElement) {
+				// 0. ordinary number
+				// 1. subject id
+				// 2. subject name
+				// 3. credit
+				// 4. class id
+				// 5. teacher
+				// 6. number of students
+				// 7. session
+				// 8. week day
+				// 9. periods
+				// 10. place
+				// 11. group
 				switch cellIndex {
 				case 1:
 					class.SubjectId = tableCell.Text
@@ -79,7 +94,7 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 						firstPeriod, _ := strconv.ParseInt(firstPeriodMatch, 10, 8)
 						lastPeriod, _ := strconv.ParseInt(lastPeriodMatch, 10, 8)
 
-						periods := make([]int8, 0)
+						periods := []int8{}
 						for period := firstPeriod; period <= lastPeriod; period++ {
 							periods = append(periods, int8(period))
 						}
@@ -93,8 +108,8 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 			})
 
 			periods := bson.A{}
-			for _, period := range class.Periods {
-				periods = append(periods, period)
+			for index := range class.Periods {
+				periods = append(periods, class.Periods[index])
 			}
 			bsonDocument := bson.D{
 				{Key: "subjectId", Value: class.SubjectId},
@@ -114,11 +129,11 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 		})
 
 		fmt.Println()
-		_, err := classCollection.InsertMany(context.TODO(), documents)
+		_, err := classCollection.InsertMany(dbcontext, documents)
 		if err != nil {
 			fmt.Printf("%v\n", err)
 		}
 	})
 
-	classCollector.Visit(url)
+	classCollector.Visit(ROOT_URL)
 }

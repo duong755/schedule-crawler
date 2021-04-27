@@ -14,7 +14,6 @@ func Client() (context.Context, *mongo.Client) {
 	client, err := mongo.Connect(dbcontext, options.Client().ApplyURI(DATABASE_URL))
 	if err != nil {
 		log.Fatal(err)
-		panic("Cannot connect to database")
 	}
 
 	return dbcontext, client

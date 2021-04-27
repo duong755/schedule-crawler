@@ -23,10 +23,11 @@ func buildQuery(semesterId string, page, offset int) string {
 }
 
 func Schedule(dbcontext context.Context, client *mongo.Client) {
-	const semesterSelector string = "#SinhvienLmh_term_id"
+	const SEMESTER_SELECTOR string = "#SinhvienLmh_term_id"
 	// const tableSelector string = "#sinhvien-lmh-grid > table.items > tbody"
-	const lastPageSelector string = "#sinhvien-lmh-grid #yw0 > li.last > a[href]"
-	const rootUrl string = "http://112.137.129.87/qldt/index.php"
+	const LAST_PAGE_SELECTOR string = "#sinhvien-lmh-grid #yw0 > li.last > a[href]"
+	const ROOT_URL string = "http://112.137.129.87/qldt/index.php"
+	const THREADS int = 4
 
 	scheduleCollection := client.Database("uet").Collection("schedule")
 	scheduleCollection.Drop(dbcontext)
@@ -47,12 +48,23 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 	scheduleCollector.OnHTML("tbody", func(htmlTableBodyElement *colly.HTMLElement) {
 		fmt.Println("Collecting schedules...")
 		numberOfRows := len(htmlTableBodyElement.ChildTexts("tr"))
-		documents := make([]interface{}, 0, numberOfRows)
+		documents := []interface{}{}
 
 		htmlTableBodyElement.ForEach("tr", func(rowIndex int, htmlTRowElement *colly.HTMLElement) {
 			schedule := models.Schedule{}
 
 			htmlTRowElement.ForEach("td", func(cellIndex int, htmlTCellElement *colly.HTMLElement) {
+				// 0. ordinary number
+				// 1. student id
+				// 2. student name
+				// 3. student birthday
+				// 4. student course
+				// 5. class id
+				// 6. subject name
+				// 7. group
+				// 8. credit
+				// 9. student note
+
 				// ignore case 0
 				switch cellIndex {
 				case 1:
@@ -86,26 +98,26 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 		})
 		fmt.Println()
 
-		_, err := scheduleCollection.InsertMany(context.TODO(), documents)
+		_, err := scheduleCollection.InsertMany(dbcontext, documents)
 		if err != nil {
 			panic(err)
 		}
 	})
 
-	lastPageCollector.OnHTML(lastPageSelector, func(htmlLinkElement *colly.HTMLElement) {
+	lastPageCollector.OnHTML(LAST_PAGE_SELECTOR, func(htmlLinkElement *colly.HTMLElement) {
 		pageRegexp, _ := regexp.Compile(`(?:SinhvienLmh_page\=)(\d+)`)
 		href := htmlLinkElement.Attr("href")
 		matchedResults := pageRegexp.FindStringSubmatch(href)
 		lastPageString := matchedResults[1]
 		lastPage, _ = strconv.ParseInt(lastPageString, 10, 64)
-		requestQueue, _ := queue.New(4, &queue.InMemoryQueueStorage{MaxSize: 10})
+		requestQueue, _ := queue.New(THREADS, &queue.InMemoryQueueStorage{MaxSize: 10})
 		for page := 1; page <= int(lastPage); page++ {
-			requestQueue.AddURL(rootUrl + buildQuery(semesterId, page, 5000))
+			requestQueue.AddURL(ROOT_URL + buildQuery(semesterId, page, 5000))
 		}
 		requestQueue.Run(scheduleCollector)
 	})
 
-	semesterCollector.OnHTML(semesterSelector, func(htmlSelectElement *colly.HTMLElement) {
+	semesterCollector.OnHTML(SEMESTER_SELECTOR, func(htmlSelectElement *colly.HTMLElement) {
 		fmt.Println("Searching for semester id")
 		htmlSelectElement.ForEach("option", func(htmlOptionElementIndex int, htmlOptionElement *colly.HTMLElement) {
 			if htmlOptionElementIndex == 1 {
@@ -114,12 +126,12 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 					fmt.Println("No semester id found")
 				} else {
 					fmt.Printf("Found semester id: %s\n", semesterId)
-					lastPageCollector.Visit(rootUrl + buildQuery(semesterId, 1, 5000))
+					lastPageCollector.Visit(ROOT_URL + buildQuery(semesterId, 1, 5000))
 				}
 			}
 		})
 	})
 
-	semesterCollector.Visit(rootUrl)
+	semesterCollector.Visit(ROOT_URL)
 	semesterCollector.Wait()
 }
