@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"schedule.crawler/models"
 )
 
@@ -31,6 +32,20 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 
 	scheduleCollection := client.Database("uet").Collection("schedule")
 	scheduleCollection.Drop(dbcontext)
+	scheduleCollection.Indexes().CreateMany(dbcontext, []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "classId", Value: "hashed"},
+			},
+			Options: options.Index().SetName("classIdHashedIndex"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "studentId", Value: "hashed"},
+			},
+			Options: options.Index().SetName("studentIdHashedIndex"),
+		},
+	})
 
 	var lastPage int64 = 0
 	var semesterId string = ""

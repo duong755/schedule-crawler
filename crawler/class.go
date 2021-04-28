@@ -9,6 +9,7 @@ import (
 	"github.com/gocolly/colly/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"schedule.crawler/models"
 )
 
@@ -18,6 +19,13 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 	)
 	SELECTOR := "table:nth-child(4) > tbody"
 	ROOT_URL := "http://112.137.129.115/tkb/listbylist.php"
+
+	classCollection := client.Database("uet").Collection("class")
+	classCollection.Drop(dbcontext)
+	classCollection.Indexes().CreateOne(dbcontext, mongo.IndexModel{
+		Keys:    bson.D{{Key: "classId", Value: "hashed"}},
+		Options: options.Index().SetName("classIdHashedIndex"),
+	})
 
 	classCollector.OnRequest(func(req *colly.Request) {
 		fmt.Printf("Sending request to %s ...\n", req.URL)
@@ -31,8 +39,6 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 	classCollector.OnHTML(SELECTOR, func(matchedTable *colly.HTMLElement) {
 		firstPeriodRegexp, _ := regexp.Compile(`^\d+`)
 		lastPeriodRegexp, _ := regexp.Compile(`\d+$`)
-		classCollection := client.Database("uet").Collection("class")
-		classCollection.Drop(dbcontext)
 
 		numberOfRows := len(matchedTable.ChildTexts("tr"))
 		documents := []interface{}{}
