@@ -31,7 +31,6 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 	const THREADS int = 4
 
 	scheduleCollection := client.Database("uet").Collection("schedule")
-	scheduleCollection.Drop(dbcontext)
 	scheduleCollection.Indexes().CreateMany(dbcontext, []mongo.IndexModel{
 		{
 			Keys: bson.D{
@@ -46,6 +45,13 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 			Options: options.Index().SetName("studentIdHashedIndex"),
 		},
 	})
+
+	var anySchedule models.Schedule
+	scheduleCollection.FindOne(dbcontext, bson.D{{}}).Decode(&anySchedule)
+	defer func() {
+		fmt.Println("Deleting outdated schedules data...")
+		scheduleCollection.DeleteMany(dbcontext, bson.D{{Key: "crawledAt", Value: anySchedule.CrawledAt}})
+	}()
 
 	var lastPage int64 = 0
 	var semesterId string = ""
@@ -69,6 +75,7 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 			schedule := models.Schedule{}
 
 			htmlTRowElement.ForEach("td", func(cellIndex int, htmlTCellElement *colly.HTMLElement) {
+				schedule.CrawledAt = dbcontext.Value("startCrawlingTime").(string)
 				// 0. ordinary number
 				// 1. student id
 				// 2. student name
@@ -107,9 +114,10 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 				{Key: "classId", Value: schedule.ClassId},
 				{Key: "classNote", Value: schedule.ClassNote},
 				{Key: "studentNote", Value: schedule.StudentNote},
+				{Key: "crawledAt", Value: schedule.CrawledAt},
 			}
 			documents = append(documents, bsonDocument)
-			fmt.Printf("\r Scanned %d/%d", rowIndex+1, numberOfRows)
+			fmt.Printf("\rScanned %d/%d", rowIndex+1, numberOfRows)
 		})
 		fmt.Println()
 
@@ -148,5 +156,4 @@ func Schedule(dbcontext context.Context, client *mongo.Client) {
 	})
 
 	semesterCollector.Visit(ROOT_URL)
-	semesterCollector.Wait()
 }

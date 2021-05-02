@@ -13,4 +13,5 @@ type Schedule struct {
 	ClassId         string             `bson:"classId" json:"classId"`
 	ClassNote       string             `bson:"classNote" json:"classNote"`
 	StudentNote     string             `bson:"studentNote" json:"studentNote"`
+	CrawledAt       string             `bson:"crawledAt" json:"crawledAt"`
 }

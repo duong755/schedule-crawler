@@ -21,11 +21,17 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 	ROOT_URL := "http://112.137.129.115/tkb/listbylist.php"
 
 	classCollection := client.Database("uet").Collection("class")
-	classCollection.Drop(dbcontext)
 	classCollection.Indexes().CreateOne(dbcontext, mongo.IndexModel{
 		Keys:    bson.D{{Key: "classId", Value: "hashed"}},
 		Options: options.Index().SetName("classIdHashedIndex"),
 	})
+
+	var anyClass models.Class
+	classCollection.FindOne(dbcontext, bson.D{}).Decode(&anyClass)
+	defer func() {
+		fmt.Println("Deleting outdated classes data...")
+		classCollection.DeleteMany(dbcontext, bson.D{{Key: "crawledAt", Value: anyClass.CrawledAt}})
+	}()
 
 	classCollector.OnRequest(func(req *colly.Request) {
 		fmt.Printf("Sending request to %s ...\n", req.URL)
@@ -51,6 +57,7 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 			}
 			class := models.Class{}
 			tableRow.ForEach("td", func(cellIndex int, tableCell *colly.HTMLElement) {
+				class.CrawledAt = dbcontext.Value("startCrawlingTime").(string)
 				// 0. ordinary number
 				// 1. subject id
 				// 2. subject name
@@ -129,9 +136,10 @@ func Class(dbcontext context.Context, client *mongo.Client) {
 				{Key: "periods", Value: periods},
 				{Key: "place", Value: class.Place},
 				{Key: "note", Value: class.Note},
+				{Key: "crawledAt", Value: class.CrawledAt},
 			}
 			documents = append(documents, bsonDocument)
-			fmt.Printf("\r Scanned %d/%d rows", rowIndex+1, numberOfRows)
+			fmt.Printf("\rScanned %d/%d rows", rowIndex+1, numberOfRows)
 		})
 
 		fmt.Println()
