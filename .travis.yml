@@ -1,0 +1,7 @@
+language: go
+go:
+  - 1.16
+jobs:
+  include:
+    - stage: crawl
+      script: go run main.go
